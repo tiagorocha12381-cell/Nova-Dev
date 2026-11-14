@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b16">
+<title>NOVA DEV | Tecnologia e Criatividade</title>
+
+<style>
+:root {
+  --bg: #080b16;
+  --panel: #11172a;
+  --purple: #8b5cf6;
+  --cyan: #22d3ee;
+  --text: #f5f7ff;
+  --muted: #a4aec8;
+  --border: #26304b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(8, 11, 22, .94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar {
+  max-width: 1150px;
+  margin: auto;
+  padding: 19px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.logo span {
+  color: var(--purple);
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+nav a {
+  color: var(--muted);
+  font-size: 14px;
+  transition: .2s;
+}
+
+nav a:hover {
+  color: var(--cyan);
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: 0;
+  color: white;
+  font-size: 27px;
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1150px;
+  margin: auto;
+  padding: 0 22px;
+}
+
+.hero {
+  min-height: 580px;
+  display: flex;
+  align-items: center;
+  padding: 80px 0;
+  background:
+    radial-gradient(ellipse at 75% 40%, rgba(139,92,246,.19), transparent 48%),
+    radial-gradient(ellipse at 20% 80%, rgba(34,211,238,.10), transparent 40%);
+}
+
+.hero-content {
+  max-width: 760px;
+}
+
+.tag {
+  display: inline-block;
+  color: var(--cyan);
+  border: 1px solid rgba(34,211,238,.35);
+  background: rgba(34,211,238,.08);
+  border-radius: 30px;
+  padding: 9px 15px;
+  font-size: 12px;
+  margin-bottom: 24px;
+}
+
+.hero h1 {
+  font-size: clamp(39px, 7vw, 68px);
+  line-height: 1.08;
+  margin-bottom: 22px;
+}
+
+.hero h1 span {
+  background: linear-gradient(90deg, var(--purple), var(--cyan));
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.hero p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.8;
+  max-width: 620px;
+  margin-bottom: 30px;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 14px 21px;
+  border-radius: 9px;
+  font-weight: bold;
+  font-size: 14px;
+  transition: .2s;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--purple), #5965e9);
+  color: white;
+}
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  color: white;
+  background: var(--panel);
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+  opacity: .9;
+}
+
+section {
+  padding: 80px 0;
+}
+
+.section-heading {
+  margin-bottom: 35px;
+}
+
+.section-heading small {
+  color: var(--cyan);
+  font-size: 12px;
+  letter-spacing: 3px;
+  font-weight: bold;
+}
+
+.section-heading h2 {
+  font-size: clamp(27px, 4vw, 39px);
+  margin-top: 12px;
+}
+
+.section-heading p {
+  color: var(--muted);
+  margin-top: 12px;
+  line-height: 1.7;
+}
+
+.services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 17px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 25px;
+  border-radius: 15px;
+  transition: .25s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: var(--purple);
+}
+
+.card-icon {
+  font-size: 29px;
+  margin-bottom: 18px;
+}
+
+.card h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.projects {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.project-card {
+  background: linear-gradient(145deg, #151d35, #101527);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 27px;
+}
+
+.project-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 23px;
+}
+
+.project-logo {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.project-logo span {
+  color: var(--purple);
+}
+
+.project-status {
+  font-size: 11px;
+  color: var(--cyan);
+  background: rgba(34,211,238,.09);
+  padding: 7px 10px;
+  border-radius: 20px;
+}
+
+.project-card h3 {
+  font-size: 21px;
+  margin-bottom: 10px;
+}
+
+.project-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+.project-link {
+  display: inline-block;
+  color: var(--cyan);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.project-link:hover {
+  text-decoration: underline;
+}
+
+.about-box {
+  background: linear-gradient(120deg, #1b1740, #10283b);
+  border: 1px solid #38335e;
+  border-radius: 18px;
+  padding: 35px;
+}
+
+.about-box p {
+  color: #c2cbe0;
+  line-height: 1.9;
+  font-size: 15px;
+  max-width: 800px;
+}
+
+.contact {
+  text-align: center;
+  background: radial-gradient(ellipse at center, rgba(139,92,246,.15), transparent 65%);
+}
+
+.contact h2 {
+  font-size: clamp(28px, 5vw, 43px);
+  margin-bottom: 15px;
+}
+
+.contact p {
+  color: var(--muted);
+  margin-bottom: 27px;
+  line-height: 1.7;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 25px 20px;
+  text-align: center;
+  color: #78839f;
+  font-size: 12px;
+}
+
+.float-btn {
+  position: fixed;
+  bottom: 22px;
+  right: 20px;
+  z-index: 9;
+  background: #20c878;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 35px;
+  font-size: 13px;
+  font-weight: bold;
+  box-shadow: 0 5px 25px rgba(0,0,0,.3);
+}
+
+@media(max-width: 750px) {
+  .menu-toggle {
+    display: block;
+  }
+
+  nav {
+    display: none;
+    position: absolute;
+    top: 65px;
+    left: 0;
+    right: 0;
+    background: #0d1222;
+    border-bottom: 1px solid var(--border);
+    padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  nav.open {
+    display: flex;
+  }
+
+  .hero {
+    min-height: 500px;
+    padding: 65px 0;
+  }
+
+  .services {
+    grid-template-columns: 1fr;
+  }
+
+  .projects {
+    grid-template-columns: 1fr;
+  }
+
+  section {
+    padding: 60px 0;
+  }
+
+  .about-box {
+    padding: 23px;
+  }
+}
+</style>
+</head><body>
+
+<header>
+  <div class="navbar">
+    <a href="#inicio" class="logo">NOVA<span>DEV</span></a>
+
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+
+    <nav id="navMenu">
+      <a href="#inicio">Início</a>
+      <a href="#servicos">Serviços</a>
+      <a href="#projetos">Projetos</a>
+      <a href="#sobre">Sobre</a>
+      <a href="#contato">Contato</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero" id="inicio">
+  <div class="container">
+    <div class="hero-content">
+      <div class="tag">🚀 TECNOLOGIA • INOVAÇÃO • CRIATIVIDADE</div>
+
+      <h1>
+        Transformamos ideias em
+        <span>experiências digitais.</span>
+      </h1>
+
+      <p>
+        Somos a NOVA DEV. Criamos experiências digitais, sites e projetos
+        tecnológicos com criatividade, dedicação e inovação.
+      </p>
+
+      <div class="buttons">
+        <a href="#projetos" class="btn btn-primary">Conhecer projetos</a>
+        <a href="#contato" class="btn btn-secondary">Falar com a NOVA DEV</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="servicos">
+  <div class="container">
+    <div class="section-heading">
+      <small>O QUE FAZEMOS</small>
+      <h2>Nossas soluções</h2>
+      <p>Ideias que ganham vida através da tecnologia.</p>
+    </div>
+
+    <div class="services">
+      <div class="card">
+        <div class="card-icon">💻</div>
+        <h3>Desenvolvimento Web</h3>
+        <p>Criação de páginas e experiências digitais modernas, responsivas e funcionais.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <h3>Sistemas Digitais</h3>
+        <p>Projetos de organização, produtividade e ferramentas para facilitar tarefas.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">✨</div>
+        <h3>Projetos Criativos</h3>
+        <p>Transformamos ideias em experiências digitais com identidade própria.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="projetos">
+  <div class="container">
+    <div class="section-heading">
+      <small>NOSSO TRABALHO</small>
+      <h2>Projetos da NOVA DEV</h2>
+      <p>Conheça algumas das experiências que estamos construindo.</p>
+    </div>
+
+    <div class="projects">
+
+      <div class="project-card">
+        <div class="project-top">
+          <div class="project-logo">NOVA<span> STORE</span></div>
+          <div class="project-status">DEMO FUNCIONAL</div>
+        </div>
+
+        <h3>Loja virtual</h3>
+        <p>
+          Uma demonstração de loja online com produtos, carrinho de compras
+          e cálculo automático do total.
+        </p>
+
+        <a href="./novastore.html" class="project-link">
+          Entrar na NOVA STORE →
+        </a>
+      </div>
+
+      <div class="project-card">
+        <div class="project-top">
+          <div class="project-logo">NOVA<span> SYSTEM</span></div>
+          <div class="project-status">DEMO FUNCIONAL</div>
+        </div>
+
+        <h3>Painel de gerenciamento</h3>
+        <p>
+          Um sistema de organização com dashboard, cadastro de tarefas,
+          acompanhamento de progresso e armazenamento local.
+        </p>
+
+        <a href="./novasystem.html" class="project-link">
+          Entrar na NOVA SYSTEM →
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="sobre">
+  <div class="container">
+    <div class="section-heading">
+      <small>QUEM SOMOS</small>
+      <h2>Sobre a NOVA DEV</h2>
+    </div>
+
+    <div class="about-box">
+      <p>
+        A NOVA DEV nasceu da vontade de criar, experimentar e transformar
+        ideias em projetos reais. Nosso objetivo é desenvolver soluções
+        digitais acessíveis, modernas e criativas, sempre buscando aprender
+        e evoluir através da tecnologia.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contato">
+  <div class="container">
+    <div class="section-heading">
+      <small>VAMOS CONVERSAR?</small>
+      <h2>Tem uma ideia? Vamos construir!</h2>
+      <p>
+        Entre em contato com a NOVA DEV através do nosso grupo oficial.
+      </p>
+    </div>
+
+    <a
+      href="https://chat.whatsapp.com/LUhrf3sXcmNGSVCDPGLTbZ?s=cl&p=a&iam=2"
+      class="btn btn-primary"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Entrar no grupo do WhatsApp →
+    </a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  © <span id="year"></span> NOVA DEV — Tecnologia e criatividade.
+  <br><br>
+  Todos os direitos reservados.
+</footer>
+
+<a
+  href="https://chat.whatsapp.com/LUhrf3sXcmNGSVCDPGLTbZ?s=cl&p=a&iam=2"
+  class="float-btn"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  WhatsApp ↗
+</a>
+
+<script>
+const menuToggle = document.getElementById("menuToggle");
+const navMenu = document.getElementById("navMenu");
+
+menuToggle.addEventListener("click", function() {
+  navMenu.classList.toggle("open");
+  menuToggle.textContent =
+    navMenu.classList.contains("open") ? "✕" : "☰";
+});
+
+document.querySelectorAll("#navMenu a").forEach(link => {
+  link.addEventListener("click", function() {
+    navMenu.classList.remove("open");
+    menuToggle.textContent = "☰";
+  });
+});
+
+document.getElementById("year").textContent =
+  new Date().getFullYear();
+</script>
+
+</body>
+</html>
