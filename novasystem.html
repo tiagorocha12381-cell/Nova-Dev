@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090b16">
+  <meta name="description" content="NOVA SYSTEM — painel de tarefas e administração da NOVA STORE.">
+  <title>NOVA SYSTEM</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+    body{background:#090b16;color:#fff;min-height:100vh}
+    .hidden{display:none!important}
+    header{padding:18px 5%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #252943}
+    .logo{font-size:23px;font-weight:bold;color:#a78bfa}
+    button,a{cursor:pointer}
+    button{border:0;border-radius:9px;padding:12px 17px;font-weight:bold}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #c4b5fd;outline-offset:2px}
+    .primary{background:#8b5cf6;color:#fff}.secondary{background:#20243b;color:#fff}.danger{background:#7f1d1d;color:#fff}
+    .container{width:92%;max-width:1000px;margin:30px auto}
+    .panel{background:#111629;border:1px solid #252c48;border-radius:15px;padding:22px;margin-bottom:20px}
+    h1,h2,h3{margin-bottom:15px}p{color:#b8bfd4;line-height:1.5}
+    input,textarea,select{width:100%;padding:13px;margin:7px 0 14px;background:#090e20;color:#fff;border:1px solid #303958;border-radius:8px;outline:none}
+    input:focus,textarea:focus,select:focus{border-color:#8b5cf6}textarea{min-height:90px;resize:vertical}
+    label{font-size:14px;color:#cbd5e1}.auth{max-width:430px;margin:45px auto}.auth button{width:100%;margin-top:8px}
+    .link{color:#a78bfa;text-decoration:none}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+    .stat{background:#171e35;padding:18px;border-radius:12px}.stat strong{font-size:25px;color:#a78bfa;display:block;margin-top:8px}
+    .task,.product{background:#171e35;padding:15px;border-radius:10px;margin:10px 0;overflow-wrap:anywhere}
+    .task-actions,.product-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.task-actions button,.product-actions button{padding:9px 12px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .badge{background:#312e81;color:#ddd6fe;padding:6px 10px;border-radius:20px;font-size:12px;white-space:nowrap}
+    .progress{height:9px;background:#252c48;border-radius:10px;overflow:hidden;margin:15px 0}.progress div{height:100%;background:#8b5cf6;width:0;transition:width .3s}
+    .admin-title{color:#67e8f9}.product img{width:100%;max-height:190px;object-fit:contain;background:#090e20;border-radius:8px;margin-bottom:10px}
+    small{color:#9ca3af}.message-error{color:#fca5a5}.message-success{color:#86efac}
+    footer{width:92%;max-width:1000px;margin:0 auto 25px;color:#8b93a9;font-size:12px;text-align:center}
+    @media(max-width:600px){.stats{grid-template-columns:1fr 1fr}header{padding:15px 4%}.container{margin:20px auto}.panel{padding:16px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NOVA SYSTEM</div>
+    <div class="row">
+      <span id="adminBadge" class="badge hidden">ADMIN</span>
+      <button id="logoutBtn" class="secondary hidden" type="button">Sair</button>
+    </div>
+  </header>
+
+  <section id="authScreen" class="container auth">
+    <div class="panel">
+      <h1 id="authTitle">Entrar na NOVA SYSTEM</h1>
+      <p id="authDescription">Acesse sua conta para continuar.</p>
+      <div id="nameField" class="hidden">
+        <label for="displayName">Seu nome</label>
+        <input id="displayName" type="text" maxlength="60" autocomplete="name" placeholder="Digite seu nome">
+      </div>
+      <label for="email">E-mail</label>
+      <input id="email" type="email" maxlength="254" autocomplete="email" placeholder="seuemail@gmail.com">
+      <label for="password">Senha</label>
+      <input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="Sua senha">
+      <button class="primary" type="button" id="authButton">Entrar</button>
+      <button class="secondary" type="button" id="googleButton">Entrar com Google</button>
+      <p style="margin-top:18px;text-align:center"><span id="toggleText">Ainda não tem conta?</span> <a class="link" href="#" id="toggleLink">Criar conta</a></p>
+      <p id="authMessage" style="margin-top:12px" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <main id="dashboard" class="container hidden">
+    <div class="panel">
+      <div class="row"><div><h1>Olá, <span id="userName">usuário</span>!</h1><p>Bem-vindo à sua área de tarefas.</p></div><span class="badge">NOVA DEV</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat">Total de tarefas<strong id="totalTasks">0</strong></div>
+      <div class="stat">Concluídas<strong id="completedTasks">0</strong></div>
+      <div class="stat">Pendentes<strong id="pendingTasks">0</strong></div>
+    </div>
+    <div class="panel">
+      <h2>Progresso</h2><div class="progress"><div id="progressBar"></div></div><p id="progressText">0% concluído</p>
+    </div>
+    <div class="panel">
+      <h2 id="taskFormTitle">Adicionar tarefa</h2>
+      <label for="taskTitle">Nome da tarefa</label>
+      <input id="taskTitle" maxlength="160" placeholder="Ex: Estudar programação">
+      <button class="primary" type="button" id="saveTaskBtn">Salvar tarefa</button>
+      <button class="secondary hidden" type="button" id="cancelTaskEdit">Cancelar edição</button>
+      <p id="taskMessage" style="margin-top:10px" role="status" aria-live="polite"></p>
+    </div>
+    <div class="panel"><h2>Minhas tarefas</h2><div id="taskList"><p>Carregando tarefas...</p></div></div>
+
+    <section id="adminArea" class="hidden">
+      <div class="panel"><h2 class="admin-title">NOVA STORE — Administração</h2><p>Gerencie os produtos que aparecerão na loja.</p></div>
+      <div class="panel">
+        <h2 id="productFormTitle">Cadastrar produto</h2>
+        <label for="productName">Nome do produto</label><input id="productName" maxlength="120" placeholder="Ex: Camiseta NOVA">
+        <label for="productCategory">Categoria</label><input id="productCategory" maxlength="80" placeholder="Ex: Roupas, acessórios">
+        <label for="productType">Tipo de produto</label>
+        <select id="productType"><option value="affiliate">Afiliado</option><option value="supplier">Fornecedor próprio</option></select>
+        <label for="productPrice">Preço (R$)</label><input id="productPrice" type="number" min="0" max="99999999" step="0.01" inputmode="decimal" placeholder="0.00">
+        <label for="productDescription">Descrição</label><textarea id="productDescription" maxlength="2000" placeholder="Descreva o produto"></textarea>
+        <label for="productImage">Link da imagem (opcional)</label><input id="productImage" type="url" maxlength="2048" placeholder="https://...">
+        <label for="productAffiliate">Link de afiliado (para produto afiliado)</label><input id="productAffiliate" type="url" maxlength="2048" placeholder="https://...">
+        <label for="productSupplier">Nome do fornecedor (para produto próprio)</label><input id="productSupplier" maxlength="120" placeholder="Nome do fornecedor">
+        <label for="productStatus">Visibilidade</label>
+        <select id="productStatus"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="paused">Pausado</option></select>
+        <button class="primary" type="button" id="saveProductBtn">Salvar produto</button>
+        <button class="secondary hidden" type="button" id="cancelProductEdit">Cancelar edição</button>
+        <p id="productMessage" style="margin-top:12px" role="status" aria-live="polite"></p>
+      </div>
+      <div class="panel"><h2>Produtos cadastrados</h2><div id="productList"><p>Carregando produtos...</p></div></div>
+    </section>
+  </main>
+
+  <footer>NOVA SYSTEM — mantenha seus dados de acesso em segurança.</footer>
+
+  <script>
+  "use strict";
+
+  /* CONFIGURAÇÃO SUPABASE — chave publishable destinada ao navegador. */
+  const SUPABASE_URL = "https://iewbgaryldhuihockwan.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_KylW37D_5Cq3IptoDbTZig_WRCtiM3k";
+
+  if (!window.supabase) {
+    document.body.textContent = "Não foi possível carregar o serviço. Verifique sua conexão e atualize a página.";
+    throw new Error("Biblioteca Supabase não carregada.");
+  }
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
+
+  let currentUser = null;
+  let isAdmin = false;
+  let editingTaskId = null;
+  let editingProductId = null;
+  let isSignup = false;
+  let authBusy = false;
+  let taskBusy = false;
+  let productBusy = false;
+  let taskLoadVersion = 0;
+  let productLoadVersion = 0;
+  const taskCache = new Map();
+  const productCache = new Map();
+  const taskOperations = new Set();
+  const productOperations = new Set();
+
+  function el(id) { return document.getElementById(id); }
+  function setMessage(id, message, kind = "") {
+    const node = el(id);
+    if (!node) return;
+    node.textContent = String(message ?? "");
+    node.classList.toggle("message-error", kind === "error");
+    node.classList.toggle("message-success", kind === "success");
+  }
+  function setBusy(buttonId, busy, busyLabel, idleLabel) {
+    const button = el(buttonId);
+    if (!button) return;
+    button.disabled = Boolean(busy);
+    if (busy && busyLabel) button.textContent = busyLabel;
+    if (!busy && idleLabel) button.textContent = idleLabel;
+  }
+  function safeHttpsUrl(value) {
+    if (typeof value !== "string" || !value.trim()) return null;
+    try {
+      const url = new URL(value.trim());
+      if (url.protocol !== "https:" || url.username || url.password) return null;
+      return url.href;
+    } catch {
+      return null;
+    }
+  }
+  function showLogin(message = "") {
+    currentUser = null;
+    isAdmin = false;
+    editingTaskId = null;
+    editingProductId = null;
+    taskLoadVersion++;
+    productLoadVersion++;
+    taskCache.clear();
+    productCache.clear();
+    taskOperations.clear();
+    productOperations.clear();
+    taskBusy = false;
+    productBusy = false;
+    el("authScreen").classList.remove("hidden");
+    el("dashboard").classList.add("hidden");
+    el("logoutBtn").classList.add("hidden");
+    el("adminBadge").classList.add("hidden");
+    el("adminArea").classList.add("hidden");
+    el("taskList").textContent = "Entre novamente para carregar suas tarefas.";
+    el("productList").textContent = "Acesso administrativo necessário.";
+    el("taskTitle").value = "";
+    el("productName").value = "";
+    updateDashboard([]);
+    setMessage("taskMessage", "");
+    setMessage("productMessage", "");
+    if (message) setMessage("authMessage", message, "error");
+  }
+
+  /* AUTENTICAÇÃO */
+  function toggleAuth() {
+    isSignup = !isSignup;
+    el("authTitle").textContent = isSignup ? "Criar conta na NOVA SYSTEM" : "Entrar na NOVA SYSTEM";
+    el("authDescription").textContent = isSignup ? "Preencha os dados para criar sua conta." : "Acesse sua conta para continuar.";
+    el("authButton").textContent = isSignup ? "Criar conta" : "Entrar";
+    el("password").autocomplete = isSignup ? "new-password" : "current-password";
+    el("nameField").classList.toggle("hidden", !isSignup);
+    el("toggleText").textContent = isSignup ? "Já tem uma conta?" : "Ainda não tem conta?";
+    el("toggleLink").textContent = isSignup ? "Entrar" : "Criar conta";
+    setMessage("authMessage", "");
+  }
+
+  async function handleAuth() {
+    if (authBusy) return;
+    const email = el("email").value.trim();
+    const password = el("password").value;
+    const displayName = el("displayName").value.trim();
+    if (!email || !password) return setMessage("authMessage", "Preencha e-mail e senha.", "error");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setMessage("authMessage", "Digite um e-mail válido.", "error");
+    if (isSignup && password.length < 8) return setMessage("authMessage", "A senha do cadastro deve ter pelo menos 8 caracteres.", "error");
+    if (isSignup && !displayName) return setMessage("authMessage", "Digite seu nome.", "error");
+    if (displayName.length > 60) return setMessage("authMessage", "O nome deve ter no máximo 60 caracteres.", "error");
+
+    const signingUp = isSignup;
+    authBusy = true;
+    setBusy("authButton", true, "Aguarde...");
+    setBusy("googleButton", true);
+    setMessage("authMessage", "Verificando seus dados...");
+    try {
+      let result;
+      if (signingUp) {
+        result = await client.auth.signUp({
+          email, password,
+          options: { data: { display_name: displayName } }
+        });
+      } else {
+        result = await client.auth.signInWithPassword({ email, password });
+      }
+      if (result.error) throw result.error;
+      if (signingUp && !result.data.session) {
+        setMessage("authMessage", "Conta criada! Confira seu e-mail para confirmar o cadastro.", "success");
+        return;
+      }
+      if (result.data.user) await openDashboard(result.data.user);
+    } catch (error) {
+      console.error("Erro de autenticação:", error);
+      setMessage("authMessage", error?.message || "Não foi possível concluir a autenticação.", "error");
+    } finally {
+      authBusy = false;
+      setBusy("authButton", false, null, isSignup ? "Criar conta" : "Entrar");
+      setBusy("googleButton", false, null, "Entrar com Google");
+    }
+  }
+
+  async function googleLogin() {
+    if (authBusy) return;
+    authBusy = true;
+    setBusy("googleButton", true, "Conectando...");
+    setBusy("authButton", true);
+    setMessage("authMessage", "Conectando com Google...");
+    try {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro no Google Login:", error);
+      setMessage("authMessage", error?.message || "Não foi possível entrar com Google.", "error");
+      authBusy = false;
+      setBusy("googleButton", false, null, "Entrar com Google");
+      setBusy("authButton", false, null, isSignup ? "Criar conta" : "Entrar");
+    }
+  }
+
+  async function logout() {
+    setBusy("logoutBtn", true, "Saindo...");
+    try {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+      showLogin();
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+      alert("Não foi possível encerrar a sessão. Tente novamente.");
+    } finally {
+      setBusy("logoutBtn", false, null, "Sair");
+    }
+  }
+
+  async function initializeApp() {
+    client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") showLogin();
+    });
+    try {
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+      if (data.session?.user) await openDashboard(data.session.user);
+      else showLogin();
+    } catch (error) {
+      console.error("Erro ao iniciar:", error);
+      showLogin("Não foi possível verificar sua sessão. Tente entrar novamente.");
+    }
+  }
+
+  /* PAINEL E AUTORIZAÇÃO */
+  async function openDashboard(user) {
+    if (!user?.id) return;
+    currentUser = user;
+    const openingUserId = user.id;
+    el("authScreen").classList.add("hidden");
+    el("dashboard").classList.remove("hidden");
+    el("logoutBtn").classList.remove("hidden");
+    const name = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
+    el("userName").textContent = name;
+    isAdmin = false;
+    el("adminArea").classList.add("hidden");
+    el("adminBadge").classList.add("hidden");
+    await loadTasks();
+    if (!currentUser || currentUser.id !== openingUserId) return;
+    try {
+      const { data, error } = await client.rpc("is_store_admin");
+      if (error) throw error;
+      if (!currentUser || currentUser.id !== openingUserId) return;
+      isAdmin = data === true;
+      el("adminArea").classList.toggle("hidden", !isAdmin);
+      el("adminBadge").classList.toggle("hidden", !isAdmin);
+      if (isAdmin) await loadProducts();
+    } catch (error) {
+      console.error("Erro ao verificar administrador:", error);
+      isAdmin = false;
+      el("adminArea").classList.add("hidden");
+      el("adminBadge").classList.add("hidden");
+    }
+  }
+
+  /* TAREFAS — A tabela existente usa `description`, não `title`.
+     A coluna `Type` existente não é usada por esta tela. */
+  async function loadTasks() {
+    if (!currentUser) return;
+    const userId = currentUser.id;
+    const requestVersion = ++taskLoadVersion;
+    el("taskList").textContent = "Carregando tarefas...";
+    try {
+      const { data, error } = await client.from("tasks")
+        .select("id,description,status,user_id,created_at")
+        .eq("user_id", userId)
+        .order("id", { ascending: false });
+      if (error) throw error;
+      if (!currentUser || currentUser.id !== userId || requestVersion !== taskLoadVersion) return;
+      renderTasks(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar tarefas:", error);
+      if (currentUser?.id === userId && requestVersion === taskLoadVersion) {
+        el("taskList").textContent = "Não foi possível carregar suas tarefas. Verifique sua conexão e tente novamente.";
+      }
+    }
+  }
+
+  async function saveTask() {
+    if (!currentUser || taskBusy) return;
+    const description = el("taskTitle").value.trim();
+    if (!description) return setMessage("taskMessage", "Digite o nome da tarefa.", "error");
+    if (description.length > 160) return setMessage("taskMessage", "A tarefa deve ter no máximo 160 caracteres.", "error");
+    const userId = currentUser.id;
+    const editingId = editingTaskId;
+    taskBusy = true;
+    setBusy("saveTaskBtn", true, "Salvando...");
+    setBusy("cancelTaskEdit", true);
+    setMessage("taskMessage", "Salvando tarefa...");
+    try {
+      let result;
+      if (editingId !== null) {
+        result = await client.from("tasks").update({ description })
+          .eq("id", editingId).eq("user_id", userId).select("id").maybeSingle();
+        if (result.error) throw result.error;
+        if (!result.data) throw new Error("A tarefa não foi encontrada ou você não tem permissão para editá-la.");
+      } else {
+        result = await client.from("tasks").insert({ "Type": "task", description, status: "pending", user_id: userId })
+          .select("id").single();
+        if (result.error) throw result.error;
+      }
+      if (currentUser?.id !== userId) return;
+      cancelTaskEdit();
+      setMessage("taskMessage", "Tarefa salva com sucesso!", "success");
+      await loadTasks();
+    } catch (error) {
+      console.error("Erro ao salvar tarefa:", error);
+      setMessage("taskMessage", error?.message || "Não foi possível salvar a tarefa.", "error");
+    } finally {
+      taskBusy = false;
+      setBusy("saveTaskBtn", false, null, "Salvar tarefa");
+      setBusy("cancelTaskEdit", false);
+    }
+  }
+
+  function editTask(id) {
+    const task = taskCache.get(String(id));
+    if (!task) return;
+    editingTaskId = task.id;
+    el("taskTitle").value = task.description || "";
+    el("taskFormTitle").textContent = "Editar tarefa";
+    el("cancelTaskEdit").classList.remove("hidden");
+    el("taskTitle").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function cancelTaskEdit() {
+    editingTaskId = null;
+    el("taskTitle").value = "";
+    el("taskFormTitle").textContent = "Adicionar tarefa";
+    el("cancelTaskEdit").classList.add("hidden");
+  }
+
+  async function toggleTask(id, button) {
+    if (!currentUser) return;
+    const key = String(id);
+    const task = taskCache.get(key);
+    if (!task || taskOperations.has(key)) return;
+    const userId = currentUser.id;
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+    taskOperations.add(key);
+    if (button) button.disabled = true;
+    try {
+      const { data, error } = await client.from("tasks").update({ status: newStatus })
+        .eq("id", task.id).eq("user_id", userId).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("A tarefa não foi encontrada ou não pode ser atualizada.");
+      if (currentUser?.id === userId) await loadTasks();
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa:", error);
+      alert(error?.message || "Não foi possível atualizar a tarefa.");
+    } finally {
+      taskOperations.delete(key);
+      if (button?.isConnected) button.disabled = false;
+    }
+  }
+
+  async function deleteTask(id, button) {
+    if (!currentUser || !confirm("Deseja excluir esta tarefa?")) return;
+    const key = String(id);
+    const task = taskCache.get(key);
+    if (!task || taskOperations.has(key)) return;
+    const userId = currentUser.id;
+    taskOperations.add(key);
+    if (button) button.disabled = true;
+    try {
+      const { data, error } = await client.from("tasks").delete()
+        .eq("id", task.id).eq("user_id", userId).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("A tarefa não foi encontrada ou não pode ser excluída.");
+      if (editingTaskId === task.id) cancelTaskEdit();
+      if (currentUser?.id === userId) await loadTasks();
+    } catch (error) {
+      console.error("Erro ao excluir tarefa:", error);
+      alert(error?.message || "Não foi possível excluir a tarefa.");
+    } finally {
+      taskOperations.delete(key);
+      if (button?.isConnected) button.disabled = false;
+    }
+  }
+
+  function renderTasks(tasks) {
+    const list = el("taskList");
+    list.replaceChildren();
+    taskCache.clear();
+    if (!tasks.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Você ainda não tem tarefas.";
+      list.appendChild(empty);
+    } else {
+      for (const task of tasks) {
+        taskCache.set(String(task.id), task);
+        const card = document.createElement("div");
+        card.className = "task";
+        const row = document.createElement("div");
+        row.className = "row";
+        const title = document.createElement("strong");
+        title.textContent = task.description || "Tarefa sem nome";
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = task.status === "completed" ? "Concluída" : "Pendente";
+        row.append(title, badge);
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+        const toggle = document.createElement("button");
+        toggle.className = "secondary"; toggle.type = "button"; toggle.dataset.action = "toggle";
+        toggle.dataset.id = String(task.id); toggle.textContent = task.status === "completed" ? "Reabrir" : "Concluir";
+        const edit = document.createElement("button");
+        edit.className = "secondary"; edit.type = "button"; edit.dataset.action = "edit";
+        edit.dataset.id = String(task.id); edit.textContent = "Editar";
+        const remove = document.createElement("button");
+        remove.className = "danger"; remove.type = "button"; remove.dataset.action = "delete";
+        remove.dataset.id = String(task.id); remove.textContent = "Excluir";
+        actions.append(toggle, edit, remove);
+        card.append(row, actions);
+        list.appendChild(card);
+      }
+    }
+    updateDashboard(tasks);
+  }
+
+  function updateDashboard(tasks) {
+    const total = tasks.length;
+    const completed = tasks.filter(task => task.status === "completed").length;
+    const pending = total - completed;
+    const percentage = total ? Math.round(completed / total * 100) : 0;
+    el("totalTasks").textContent = String(total);
+    el("completedTasks").textContent = String(completed);
+    el("pendingTasks").textContent = String(pending);
+    el("progressBar").style.width = percentage + "%";
+    el("progressText").textContent = percentage + "% concluído";
+  }
+
+  /* NOVA STORE — PRODUTOS */
+  async function loadProducts() {
+    if (!isAdmin || !currentUser) return;
+    const userId = currentUser.id;
+    const requestVersion = ++productLoadVersion;
+    const list = el("productList");
+    list.textContent = "Carregando produtos...";
+    try {
+      const { data, error } = await client.from("products")
+        .select("id,name,description,category,product_type,price,image_url,affiliate_url,supplier_name,status,created_at")
+        .order("id", { ascending: false });
+      if (error) throw error;
+      if (!currentUser || currentUser.id !== userId || !isAdmin || requestVersion !== productLoadVersion) return;
+      renderProducts(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar produtos:", error);
+      if (currentUser?.id === userId && isAdmin && requestVersion === productLoadVersion) {
+        list.textContent = "Não foi possível carregar os produtos. Verifique sua conexão e suas permissões.";
+      }
+    }
+  }
+
+  function readProductForm() {
+    const name = el("productName").value.trim();
+    const category = el("productCategory").value.trim();
+    const product_type = el("productType").value;
+    const priceText = el("productPrice").value.trim();
+    const priceNumber = Number(priceText);
+    const description = el("productDescription").value.trim();
+    const rawImage = el("productImage").value.trim();
+    const rawAffiliate = el("productAffiliate").value.trim();
+    const supplier_name = el("productSupplier").value.trim();
+    const status = el("productStatus").value;
+
+    if (!name || !category || !priceText || !Number.isFinite(priceNumber) || priceNumber < 0 || priceNumber > 99999999) {
+      throw new Error("Preencha nome, categoria e preço válido.");
+    }
+    if (Math.abs(priceNumber * 100 - Math.round(priceNumber * 100)) > 0.000001) {
+      throw new Error("O preço deve ter no máximo duas casas decimais.");
+    }
+    if (! ["affiliate", "supplier"].includes(product_type)) throw new Error("Tipo de produto inválido.");
+    if (! ["draft", "published", "paused"].includes(status)) throw new Error("Status de produto inválido.");
+    if (rawImage && !safeHttpsUrl(rawImage)) throw new Error("O link da imagem precisa ser HTTPS válido.");
+    if (rawAffiliate && !safeHttpsUrl(rawAffiliate)) throw new Error("O link de afiliado precisa ser HTTPS válido.");
+    if (status === "published" && product_type === "affiliate" && !safeHttpsUrl(rawAffiliate)) {
+      throw new Error("Adicione um link de afiliado HTTPS válido antes de publicar.");
+    }
+    if (status === "published" && product_type === "supplier" && !supplier_name) {
+      throw new Error("Informe o fornecedor antes de publicar.");
+    }
+    return {
+      name, category, product_type, price: Number(priceNumber.toFixed(2)), description,
+      image_url: rawImage ? safeHttpsUrl(rawImage) : null,
+      affiliate_url: rawAffiliate ? safeHttpsUrl(rawAffiliate) : null,
+      supplier_name: supplier_name || null, status
+    };
+  }
+
+  async function saveProduct() {
+    if (!isAdmin || !currentUser || productBusy) return;
+    let productData;
+    try { productData = readProductForm(); }
+    catch (error) { return setMessage("productMessage", error.message, "error"); }
+    const userId = currentUser.id;
+    const editingId = editingProductId;
+    productBusy = true;
+    setBusy("saveProductBtn", true, "Salvando...");
+    setBusy("cancelProductEdit", true);
+    setMessage("productMessage", "Salvando produto...");
+    try {
+      let result;
+      if (editingId !== null) {
+        result = await client.from("products").update(productData).eq("id", editingId).select("id").maybeSingle();
+        if (result.error) throw result.error;
+        if (!result.data) throw new Error("O produto não foi encontrado ou você não tem permissão para editá-lo.");
+      } else {
+        result = await client.from("products").insert(productData).select("id").single();
+        if (result.error) throw result.error;
+      }
+      if (currentUser?.id !== userId || !isAdmin) return;
+      cancelProductEdit();
+      setMessage("productMessage", "Produto salvo com sucesso!", "success");
+      await loadProducts();
+    } catch (error) {
+      console.error("Erro ao salvar produto:", error);
+      setMessage("productMessage", error?.message || "Não foi possível salvar o produto.", "error");
+    } finally {
+      productBusy = false;
+      setBusy("saveProductBtn", false, null, "Salvar produto");
+      setBusy("cancelProductEdit", false);
+    }
+  }
+
+  function renderProducts(products) {
+    const list = el("productList");
+    list.replaceChildren();
+    productCache.clear();
+    if (!products.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Nenhum produto cadastrado ainda.";
+      list.appendChild(empty);
+      return;
+    }
+    const statusLabels = { draft: "Rascunho", published: "Publicado", paused: "Pausado" };
+    for (const product of products) {
+      productCache.set(String(product.id), product);
+      const card = document.createElement("div");
+      card.className = "product";
+      const imageUrl = safeHttpsUrl(product.image_url);
+      if (imageUrl) {
+        const image = document.createElement("img");
+        image.src = imageUrl;
+        image.alt = product.name ? "Imagem de " + product.name : "Imagem do produto";
+        image.loading = "lazy";
+        image.referrerPolicy = "no-referrer";
+        image.addEventListener("error", () => image.remove(), { once: true });
+        card.appendChild(image);
+      }
+      const row = document.createElement("div"); row.className = "row";
+      const name = document.createElement("strong"); name.textContent = product.name || "Produto sem nome";
+      const badge = document.createElement("span"); badge.className = "badge";
+      badge.textContent = statusLabels[product.status] || "Status desconhecido";
+      row.append(name, badge);
+      const category = document.createElement("p"); category.textContent = product.category || "";
+      const description = document.createElement("p"); description.textContent = product.description || "";
+      const price = document.createElement("p");
+      const numericPrice = Number(product.price);
+      price.textContent = "R$ " + (Number.isFinite(numericPrice) ? numericPrice : 0).toFixed(2).replace(".", ",");
+      const type = document.createElement("small");
+      type.textContent = product.product_type === "affiliate" ? "Afiliado" : product.product_type === "supplier" ? "Fornecedor próprio" : "Tipo desconhecido";
+      const actions = document.createElement("div"); actions.className = "product-actions";
+      const edit = document.createElement("button"); edit.className = "secondary"; edit.type = "button";
+      edit.dataset.action = "edit"; edit.dataset.id = String(product.id); edit.textContent = "Editar";
+      const status = document.createElement("button"); status.className = "primary"; status.type = "button";
+      status.dataset.action = "status"; status.dataset.id = String(product.id);
+      status.textContent = product.status === "published" ? "Pausar" : "Publicar";
+      const remove = document.createElement("button"); remove.className = "danger"; remove.type = "button";
+      remove.dataset.action = "delete"; remove.dataset.id = String(product.id); remove.textContent = "Excluir";
+      actions.append(edit, status, remove);
+      card.append(row, category, description, price, type, actions);
+      list.appendChild(card);
+    }
+  }
+
+  function editProduct(id) {
+    if (!isAdmin) return;
+    const product = productCache.get(String(id));
+    if (!product) return;
+    editingProductId = product.id;
+    el("productName").value = product.name || "";
+    el("productCategory").value = product.category || "";
+    el("productType").value = product.product_type || "affiliate";
+    el("productPrice").value = product.price ?? 0;
+    el("productDescription").value = product.description || "";
+    el("productImage").value = product.image_url || "";
+    el("productAffiliate").value = product.affiliate_url || "";
+    el("productSupplier").value = product.supplier_name || "";
+    el("productStatus").value = product.status || "draft";
+    el("productFormTitle").textContent = "Editar produto";
+    el("cancelProductEdit").classList.remove("hidden");
+    el("productName").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function cancelProductEdit() {
+    editingProductId = null;
+    ["productName", "productCategory", "productPrice", "productDescription", "productImage", "productAffiliate", "productSupplier"]
+      .forEach(id => { el(id).value = ""; });
+    el("productType").value = "affiliate";
+    el("productStatus").value = "draft";
+    el("productFormTitle").textContent = "Cadastrar produto";
+    el("cancelProductEdit").classList.add("hidden");
+  }
+
+  async function changeProductStatus(id, button) {
+    if (!isAdmin || !currentUser) return;
+    const key = String(id);
+    const product = productCache.get(key);
+    if (!product || productOperations.has(key)) return;
+    const newStatus = product.status === "published" ? "paused" : "published";
+    if (newStatus === "published" && product.product_type === "affiliate" && !safeHttpsUrl(product.affiliate_url)) {
+      alert("Adicione um link HTTPS válido antes de publicar."); return;
+    }
+    if (newStatus === "published" && product.product_type === "supplier" && !product.supplier_name) {
+      alert("Informe o fornecedor antes de publicar."); return;
+    }
+    const userId = currentUser.id;
+    productOperations.add(key); if (button) button.disabled = true;
+    try {
+      const { data, error } = await client.from("products").update({ status: newStatus })
+        .eq("id", product.id).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("O produto não foi encontrado ou não pode ser atualizado.");
+      if (currentUser?.id === userId && isAdmin) await loadProducts();
+    } catch (error) {
+      console.error("Erro ao mudar status:", error);
+      alert(error?.message || "Não foi possível alterar o status do produto.");
+    } finally {
+      productOperations.delete(key); if (button?.isConnected) button.disabled = false;
+    }
+  }
+
+  async function deleteProduct(id, button) {
+    if (!isAdmin || !currentUser || !confirm("Tem certeza que deseja excluir este produto?")) return;
+    const key = String(id);
+    const product = productCache.get(key);
+    if (!product || productOperations.has(key)) return;
+    const userId = currentUser.id;
+    productOperations.add(key); if (button) button.disabled = true;
+    try {
+      const { data, error } = await client.from("products").delete().eq("id", product.id).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("O produto não foi encontrado ou não pode ser excluído.");
+      if (editingProductId === product.id) cancelProductEdit();
+      if (currentUser?.id === userId && isAdmin) await loadProducts();
+    } catch (error) {
+      console.error("Erro ao excluir produto:", error);
+      alert(error?.message || "Não foi possível excluir o produto.");
+    } finally {
+      productOperations.delete(key); if (button?.isConnected) button.disabled = false;
+    }
+  }
+
+  /* EVENTOS — delegação segura, sem HTML dinâmico/onclick inline. */
+  el("authButton").addEventListener("click", handleAuth);
+  el("googleButton").addEventListener("click", googleLogin);
+  el("logoutBtn").addEventListener("click", logout);
+  el("toggleLink").addEventListener("click", event => { event.preventDefault(); toggleAuth(); });
+  el("saveTaskBtn").addEventListener("click", saveTask);
+  el("cancelTaskEdit").addEventListener("click", cancelTaskEdit);
+  el("taskTitle").addEventListener("keydown", event => { if (event.key === "Enter") saveTask(); });
+
+  el("taskList").addEventListener("click", event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button || !el("taskList").contains(button)) return;
+    const { action, id } = button.dataset;
+    if (!id) return;
+    if (action === "toggle") toggleTask(id, button);
+    else if (action === "edit") editTask(id);
+    else if (action === "delete") deleteTask(id, button);
+  });
+
+  el("saveProductBtn").addEventListener("click", saveProduct);
+  el("cancelProductEdit").addEventListener("click", cancelProductEdit);
+  el("productList").addEventListener("click", event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button || !el("productList").contains(button)) return;
+    const { action, id } = button.dataset;
+    if (!id) return;
+    if (action === "edit") editProduct(id);
+    else if (action === "status") changeProductStatus(id, button);
+    else if (action === "delete") deleteProduct(id, button);
+  });
+
+  initializeApp();
+  </script>
+</body>
+</html>
